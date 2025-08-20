@@ -212,15 +212,17 @@
         function disconnectPartner() {
             if (isConnected) {
                 socket.emit('disconnect-partner');
-            } else {
-                // إعادة الاتصال بشخص جديد
-                const gender = localStorage.getItem('chatGender') || '';
-                socket.emit('register', { gender, fingerprint });
-                document.getElementById('connection-btn').textContent = 'قطع الاتصال';
-                document.getElementById('connection-btn').className = 'disconnect-btn';
-                document.getElementById('registration-area').innerHTML = 
-                    '<div class="waiting-message">جاري البحث عن شريك محادثة...</div>';
             }
+        }
+
+        function connectNewPartner() {
+            const gender = localStorage.getItem('chatGender') || '';
+            socket.emit('register', { gender, fingerprint });
+            document.getElementById('connection-btn').textContent = 'قطع الاتصال';
+            document.getElementById('connection-btn').className = 'disconnect-btn';
+            document.getElementById('connection-btn').onclick = disconnectPartner;
+            document.getElementById('registration-area').innerHTML = 
+                '<div class="waiting-message">جاري البحث عن شريك محادثة...</div>';
         }
 
         socket.on('registration-complete', (data) => {
@@ -252,6 +254,7 @@
                 '<div class="waiting-message">في انتظار شريك محادثة...</div>';
             document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
+            document.getElementById('connection-btn').onclick = connectNewPartner;
         });
 
         socket.on('waiting-timeout', () => {
@@ -268,6 +271,7 @@
             `;
             document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
+            document.getElementById('connection-btn').onclick = connectNewPartner;
         });
 
         socket.on('chat-started', (data) => {
@@ -277,6 +281,7 @@
             document.getElementById('chat-area').style.display = 'block';
             document.getElementById('connection-btn').textContent = 'قطع الاتصال';
             document.getElementById('connection-btn').className = 'disconnect-btn';
+            document.getElementById('connection-btn').onclick = disconnectPartner;
             addNotification(`تم ربطك مع ${data.partnerUsername}`);
         });
 
@@ -285,18 +290,12 @@
             addNotification('غادر شريك المحادثة');
             document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
+            document.getElementById('connection-btn').onclick = connectNewPartner;
             setTimeout(() => {
                 document.getElementById('chat-area').style.display = 'none';
                 document.getElementById('registration-area').style.display = 'block';
                 document.getElementById('registration-area').innerHTML = 
-                    '<div class="waiting-message">في انتظار شريك محادثة جديد...</div>';
-                
-                // إعادة المحاولة بعد انفصال الشريك
-                if (fingerprint && reconnectAttempts < maxReconnectAttempts) {
-                    reconnectAttempts++;
-                    const gender = localStorage.getItem('chatGender') || '';
-                    socket.emit('register', { gender, fingerprint });
-                }
+                    '<div class="waiting-message">اضغط على "الاتصال بشخص آخر" للبحث عن شريك جديد</div>';
             }, 3000);
         });
 
@@ -305,10 +304,11 @@
             addNotification('لقد قمت بقطع الاتصال');
             document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
+            document.getElementById('connection-btn').onclick = connectNewPartner;
             document.getElementById('chat-area').style.display = 'none';
             document.getElementById('registration-area').style.display = 'block';
             document.getElementById('registration-area').innerHTML = 
-                '<div class="waiting-message">في انتظار شريك محادثة جديد...</div>';
+                '<div class="waiting-message">اضغط على "الاتصال بشخص آخر" للبحث عن شريك جديد</div>';
         });
 
         const messageInput = document.getElementById('message-input');
