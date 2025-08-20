@@ -25,7 +25,7 @@ const pool = mysql.createPool({
 async function initializeDatabase() {
     try {
         const connection = await pool.getConnection();
-        
+
         await connection.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -39,7 +39,7 @@ async function initializeDatabase() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        
+
         await connection.query(`
             CREATE TABLE IF NOT EXISTS active_chats (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -50,7 +50,7 @@ async function initializeDatabase() {
                 FOREIGN KEY (user2_fingerprint) REFERENCES users(fingerprint)
             )
         `);
-        
+
         await connection.query(`
             CREATE TABLE IF NOT EXISTS messages (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,7 +62,7 @@ async function initializeDatabase() {
                 FOREIGN KEY (sender_fingerprint) REFERENCES users(fingerprint)
             )
         `);
-        
+
         connection.release();
         console.log('تم تهيئة قاعدة البيانات بنجاح');
     } catch (error) {
@@ -94,36 +94,36 @@ io.on('connection', (socket) => {
     socket.on('register', async (data) => {
         try {
             const { gender, fingerprint } = data;
-            
+
             // التحقق من وجود المستخدم في قاعدة البيانات
             const [existingUser] = await pool.query(
                 'SELECT * FROM users WHERE fingerprint = ?',
                 [fingerprint]
             );
-            
+
             if (existingUser.length > 0) {
                 // المستخدم موجود بالفعل
                 const user = existingUser[0];
-                
+
                 // التحقق من حظر المستخدم
                 if (user.is_banned) {
                     socket.emit('banned', { message: 'تم حظرك من استخدام الخدمة' });
                     socket.disconnect();
                     return;
                 }
-                
+
                 // تحديث حالة الاتصال للمستخدم
                 await pool.query(
                     'UPDATE users SET is_online = TRUE, socket_id = ? WHERE fingerprint = ?',
                     [socket.id, fingerprint]
                 );
-                
+
                 socket.fingerprint = fingerprint;
                 socket.username = user.username;
                 socket.gender = user.gender;
-                
+
                 // إرسال تأكيد الاتصال
-                socket.emit('registration-complete', { 
+                socket.emit('registration-complete', {
                     fingerprint,
                     username: user.username,
                     gender: user.gender
@@ -132,28 +132,28 @@ io.on('connection', (socket) => {
                 // مستخدم جديد
                 const newFingerprint = fingerprint || uuidv4();
                 const randomUsername = generateRandomName();
-                
+
                 // حفظ المستخدم في قاعدة البيانات
                 const [result] = await pool.query(
                     'INSERT INTO users (fingerprint, username, gender, socket_id) VALUES (?, ?, ?, ?)',
                     [newFingerprint, randomUsername, gender, socket.id]
                 );
-                
+
                 socket.fingerprint = newFingerprint;
                 socket.username = randomUsername;
                 socket.gender = gender;
-                
+
                 // إرسال البصمة للمستخدم
-                socket.emit('registration-complete', { 
+                socket.emit('registration-complete', {
                     fingerprint: newFingerprint,
                     username: randomUsername,
                     gender
                 });
             }
-            
+
             // البحث عن شريك محادثة
             await findChatPartner(socket);
-            
+
         } catch (err) {
             console.error('خطأ في تسجيل المستخدم:', err);
             socket.emit('registration-error', { message: 'حدث خطأ أثناء التسجيل' });
@@ -168,44 +168,44 @@ io.on('connection', (socket) => {
                 if (waitingSocketId !== socket.id && waitingSocket.fingerprint !== socket.fingerprint) {
                     // إزالة المستخدم من قائمة الانتظار
                     waitingUsers.delete(waitingSocketId);
-                    
+
                     // ربط المستخدمين معاً
                     activeChats.set(socket.id, waitingSocketId);
                     activeChats.set(waitingSocketId, socket.id);
-                    
+
                     // حفظ المحادثة في قاعدة البيانات
                     const [chatResult] = await pool.query(
                         'INSERT INTO active_chats (user1_fingerprint, user2_fingerprint) VALUES (?, ?)',
                         [socket.fingerprint, waitingSocket.fingerprint]
                     );
-                    
+
                     const chatId = chatResult.insertId;
-                    
+
                     // تحديث حالة المستخدمين
                     await pool.query(
                         'UPDATE users SET current_partner_id = ?, is_online = TRUE WHERE fingerprint IN (?, ?)',
                         [chatId, socket.fingerprint, waitingSocket.fingerprint]
                     );
-                    
+
                     // إخطار كلا المستخدمين (بدون إظهار جنس الشريك)
-                    socket.emit('chat-started', { 
+                    socket.emit('chat-started', {
                         partnerUsername: waitingSocket.username,
-                        chatId 
+                        chatId
                     });
-                    
-                    waitingSocket.emit('chat-started', { 
+
+                    waitingSocket.emit('chat-started', {
                         partnerUsername: socket.username,
-                        chatId 
+                        chatId
                     });
-                    
+
                     return;
                 }
             }
-            
+
             // لا يوجد شريك متاح، أضف المستخدم لقائمة الانتظار
             waitingUsers.set(socket.id, socket);
             socket.emit('waiting-for-partner');
-            
+
             // ضبط مهلة انتظار (5 دقائق)
             setTimeout(() => {
                 if (waitingUsers.has(socket.id) && !activeChats.has(socket.id)) {
@@ -229,21 +229,21 @@ io.on('connection', (socket) => {
 
             const { message, chatId } = data;
             const partnerId = activeChats.get(socket.id);
-            
+
             if (partnerId && message.trim() !== '') {
                 // حفظ الرسالة في قاعدة البيانات
                 await pool.query(
                     'INSERT INTO messages (chat_id, sender_fingerprint, message) VALUES (?, ?, ?)',
                     [chatId, socket.fingerprint, message]
                 );
-                
+
                 // إرسال الرسالة للشريك
                 io.to(partnerId).emit('new-message', {
                     username: socket.username,
                     message,
                     isMe: false
                 });
-                
+
                 // إرسال نسخة للمرسل
                 socket.emit('new-message', {
                     username: socket.username,
@@ -263,35 +263,31 @@ io.on('connection', (socket) => {
                 // الحصول على معلومات المحادثة
                 const [chats] = await pool.query(
                     'SELECT id FROM active_chats WHERE (user1_fingerprint = ? AND user2_fingerprint = ?) OR (user1_fingerprint = ? AND user2_fingerprint = ?)',
-                    [socket.fingerprint, io.sockets.sockets.get(partnerId)?.fingerprint, 
-                     io.sockets.sockets.get(partnerId)?.fingerprint, socket.fingerprint]
+                    [socket.fingerprint, io.sockets.sockets.get(partnerId)?.fingerprint,
+                    io.sockets.sockets.get(partnerId)?.fingerprint, socket.fingerprint]
                 );
-                
+
                 if (chats.length > 0) {
                     const chatId = chats[0].id;
-                    
+
                     // إرسال إشعار انفصال للشريك
                     io.to(partnerId).emit('partner-disconnected');
-                    
+
                     // حذف المحادثة من قاعدة البيانات
-                    // await pool.query('DELETE FROM active_chats WHERE id = ?', [chatId]);
                     await pool.query('DELETE FROM messages WHERE chat_id = ?', [chatId]);
-                    
+
                     // تحديث حالة المستخدمين
                     await pool.query(
                         'UPDATE users SET current_partner_id = NULL WHERE fingerprint IN (?, ?)',
                         [socket.fingerprint, io.sockets.sockets.get(partnerId)?.fingerprint]
                     );
                 }
-                
+
                 activeChats.delete(partnerId);
                 activeChats.delete(socket.id);
-                
+
                 // إعلام المستخدم بقطع الاتصال
                 socket.emit('disconnected-successfully');
-                
-                // البحث عن شريك جديد
-                await findChatPartner(socket);
             }
         } catch (err) {
             console.error('خطأ أثناء قطع الاتصال:', err);
@@ -307,40 +303,39 @@ io.on('connection', (socket) => {
                     // الحصول على معلومات المحادثة
                     const [chats] = await pool.query(
                         'SELECT id FROM active_chats WHERE (user1_fingerprint = ? AND user2_fingerprint = ?) OR (user1_fingerprint = ? AND user2_fingerprint = ?)',
-                        [socket.fingerprint, io.sockets.sockets.get(partnerId)?.fingerprint, 
-                         io.sockets.sockets.get(partnerId)?.fingerprint, socket.fingerprint]
+                        [socket.fingerprint, io.sockets.sockets.get(partnerId)?.fingerprint,
+                        io.sockets.sockets.get(partnerId)?.fingerprint, socket.fingerprint]
                     );
-                    
+
                     if (chats.length > 0) {
                         const chatId = chats[0].id;
-                        
+
                         // إرسال إشعار انفصال للشريك
                         io.to(partnerId).emit('partner-disconnected');
-                        
+
                         // حذف المحادثة من قاعدة البيانات
-                        // await pool.query('DELETE FROM active_chats WHERE id = ?', [chatId]);
-                        // await pool.query('DELETE FROM messages WHERE chat_id = ?', [chatId]);
-                        
+                        await pool.query('DELETE FROM messages WHERE chat_id = ?', [chatId]);
+
                         // تحديث حالة المستخدمين
                         await pool.query(
                             'UPDATE users SET current_partner_id = NULL WHERE fingerprint IN (?, ?)',
                             [socket.fingerprint, io.sockets.sockets.get(partnerId)?.fingerprint]
                         );
                     }
-                    
+
                     activeChats.delete(partnerId);
                     activeChats.delete(socket.id);
                 }
-                
+
                 // إزالة المستخدم من قائمة الانتظار
                 waitingUsers.delete(socket.id);
-                
+
                 // تحديث حالة المستخدم في قاعدة البيانات
                 await pool.query(
                     'UPDATE users SET is_online = FALSE, socket_id = NULL WHERE fingerprint = ?',
                     [socket.fingerprint]
                 );
-                
+
                 console.log(`تم قطع اتصال المستخدم: ${socket.id}`);
             }
         } catch (err) {
