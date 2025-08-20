@@ -3,164 +3,644 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دردشة عشوائية</title>
+    <title>دردشة عشوائية - Chatify</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #166088;
+            --accent-color: #4fc3f7;
+            --success-color: #4CAF50;
+            --danger-color: #f44336;
+            --warning-color: #FF9800;
+            --light-bg: #f8f9fa;
+            --dark-text: #333;
+            --light-text: #f5f5f5;
+            --radius: 12px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
         }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            color: var(--dark-text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
         .chat-container {
-            max-width: 800px;
-            margin: 20px auto;
+            width: 100%;
+            max-width: 900px;
+            margin: 20px;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             overflow: hidden;
+            transition: var(--transition);
+            transform: translateY(0);
+            opacity: 1;
         }
+        
+        .chat-container.hidden {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        
         .chat-header {
-            background: #4CAF50;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 15px;
+            padding: 18px;
             text-align: center;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+        
+        .chat-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, var(--accent-color), transparent);
+        }
+        
         .chat-messages {
-            height: 400px;
+            height: 450px;
             overflow-y: auto;
-            padding: 15px;
+            padding: 20px;
+            background: url('https://www.transparenttextures.com/patterns/light-wool.png');
+            scroll-behavior: smooth;
         }
+        
         .message {
             margin-bottom: 15px;
-            padding: 10px 15px;
-            border-radius: 20px;
-            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: var(--radius);
+            max-width: 80%;
             word-wrap: break-word;
+            position: relative;
+            transform-origin: center;
+            animation: fadeIn 0.3s ease forwards;
+            opacity: 0;
+            box-shadow: var(--shadow);
         }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .sent {
-            background: #e3f2fd;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
             margin-left: auto;
             margin-right: 0;
             text-align: left;
+            border-top-right-radius: 0;
+            transform-origin: right;
         }
+        
         .received {
-            background: #f1f1f1;
+            background: linear-gradient(135deg, #f1f1f1 0%, #e0e0e0 100%);
             margin-right: auto;
             margin-left: 0;
             text-align: right;
+            border-top-left-radius: 0;
+            transform-origin: left;
         }
+        
+        .message-time {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .sent .message-time {
+            text-align: left;
+        }
+        
         .notification {
             text-align: center;
             color: #666;
-            margin: 10px 0;
+            margin: 15px 0;
             font-size: 14px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            display: inline-block;
+            max-width: 80%;
+            animation: pulse 2s infinite;
         }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.03);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
         .chat-input {
             display: flex;
             padding: 15px;
             border-top: 1px solid #eee;
+            background: white;
         }
+        
         .chat-input input {
             flex: 1;
-            padding: 10px 15px;
+            padding: 12px 18px;
             border: 1px solid #ddd;
-            border-radius: 20px;
+            border-radius: 30px;
             outline: none;
+            font-size: 16px;
+            transition: var(--transition);
+            background: rgba(245, 245, 245, 0.7);
         }
+        
+        .chat-input input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+        }
+        
         .chat-input button {
             margin-right: 10px;
-            padding: 10px 20px;
-            background: #4CAF50;
+            padding: 12px 24px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
             color: white;
             border: none;
-            border-radius: 20px;
+            border-radius: 30px;
             cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
         }
+        
+        .chat-input button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chat-input button:active {
+            transform: translateY(0);
+        }
+        
+        .chat-input button i {
+            margin-left: 8px;
+        }
+        
         .gender-selection {
             text-align: center;
-            margin: 20px 0;
+            margin: 30px 0;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
         }
+        
+        .gender-selection h3 {
+            margin-bottom: 25px;
+            color: var(--secondary-color);
+            font-size: 20px;
+        }
+        
         .gender-btn {
-            padding: 10px 20px;
-            margin: 0 10px;
+            padding: 14px 30px;
+            margin: 0 15px;
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
             cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: var(--transition);
+            min-width: 150px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .gender-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: var(--transition);
+        }
+        
+        .gender-btn:hover::before {
+            left: 100%;
+        }
+        
+        .gender-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .gender-btn:active {
+            transform: translateY(0);
+        }
+        
         .male {
-            background: #2196F3;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
             color: white;
         }
+        
         .female {
-            background: #E91E63;
+            background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
             color: white;
         }
+        
         .waiting-message {
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px;
             color: #666;
+            font-size: 18px;
+            animation: fadeIn 0.5s ease;
         }
+        
+        .waiting-animation {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            position: relative;
+        }
+        
+        .waiting-animation div {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            animation: waitingBounce 1.5s infinite ease-in-out;
+        }
+        
+        .waiting-animation div:nth-child(1) {
+            left: 0;
+            animation-delay: 0s;
+        }
+        
+        .waiting-animation div:nth-child(2) {
+            left: 40px;
+            animation-delay: 0.2s;
+        }
+        
+        .waiting-animation div:nth-child(3) {
+            left: 80px;
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes waitingBounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-30px);
+                background: var(--primary-color);
+            }
+        }
+        
         .banned-message {
             text-align: center;
-            padding: 20px;
-            color: #f44336;
+            padding: 30px 20px;
+            color: var(--danger-color);
             font-weight: bold;
+            font-size: 18px;
+            animation: shake 0.5s ease;
         }
+        
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            20%, 60% {
+                transform: translateX(-10px);
+            }
+            40%, 80% {
+                transform: translateX(10px);
+            }
+        }
+        
         .timeout-message {
             text-align: center;
-            padding: 20px;
-            color: #FF9800;
+            padding: 30px 20px;
+            color: var(--warning-color);
             font-weight: bold;
+            font-size: 18px;
+            animation: fadeIn 0.5s ease;
         }
+        
         .user-info {
             text-align: center;
-            padding: 10px;
-            background: #f9f9f9;
+            padding: 15px;
+            background: rgba(245, 245, 245, 0.8);
             border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
         }
+        
+        .user-info-content {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        
         .disconnect-btn {
-            background: #f44336;
+            background: linear-gradient(135deg, var(--danger-color), #d32f2f);
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 30px;
             cursor: pointer;
-            margin-top: 10px;
+            font-weight: bold;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow);
         }
+        
+        .disconnect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .disconnect-btn:active {
+            transform: translateY(0);
+        }
+        
         .connect-btn {
-            background: #4CAF50;
+            background: linear-gradient(135deg, var(--success-color), #2E7D32);
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 30px;
             cursor: pointer;
-            margin-top: 10px;
+            font-weight: bold;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .connect-btn:active {
+            transform: translateY(0);
+        }
+        
+        .typing-indicator {
+            display: flex;
+            margin: 10px 0;
+            padding: 10px 15px;
+            background: #f1f1f1;
+            border-radius: 20px;
+            width: fit-content;
+            align-items: center;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #666;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingAnimation {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .chat-container {
+                margin: 10px;
+                border-radius: 0;
+            }
+            
+            .chat-messages {
+                height: 60vh;
+                padding: 15px 10px;
+            }
+            
+            .message {
+                max-width: 90%;
+                padding: 10px 15px;
+            }
+            
+            .gender-btn {
+                margin: 10px 5px;
+                padding: 12px 20px;
+                min-width: 120px;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .chat-input {
+                padding: 10px;
+            }
+            
+            .chat-input button {
+                padding: 10px 15px;
+                min-width: auto;
+            }
+        }
+        
+        /* Dark mode toggle */
+        .theme-toggle {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        /* Dark mode styles */
+        body.dark-mode {
+            background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+            color: #f5f5f5;
+        }
+        
+        body.dark-mode .chat-container {
+            background: #2d2d2d;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        body.dark-mode .chat-messages {
+            background: url('https://www.transparenttextures.com/patterns/dark-geometric.png') #252525;
+        }
+        
+        body.dark-mode .sent {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #f5f5f5;
+        }
+        
+        body.dark-mode .received {
+            background: linear-gradient(135deg, #424242 0%, #333333 100%);
+            color: #f5f5f5;
+        }
+        
+        body.dark-mode .message-time {
+            color: #aaa;
+        }
+        
+        body.dark-mode .chat-input input {
+            background: #3a3a3a;
+            border-color: #444;
+            color: #f5f5f5;
+        }
+        
+        body.dark-mode .user-info {
+            background: #363636;
+            border-color: #444;
+        }
+        
+        body.dark-mode .notification {
+            background: rgba(50, 50, 50, 0.7);
+            color: #ccc;
+        }
+        
+        /* Floating button for mobile */
+        .floating-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+            transition: var(--transition);
+        }
+        
+        .floating-button:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+        
+        @media (max-width: 576px) {
+            .floating-button {
+                display: flex;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">دردشة عشوائية</div>
+    <div class="chat-container animate__animated animate__fadeIn">
+        <div class="chat-header">
+            <button class="theme-toggle" id="theme-toggle" title="تبديل الوضع الليلي">
+                <i class="fas fa-moon"></i>
+            </button>
+            دردشة عشوائية
+            <span class="animate__animated animate__pulse animate__infinite" style="font-size: 16px; display: block; margin-top: 5px;">Chatify</span>
+        </div>
         <div id="user-info" class="user-info" style="display: none;">
-            <span id="username-display"></span>
-            <button id="connection-btn" class="disconnect-btn" onclick="disconnectPartner()">قطع الاتصال</button>
+            <div class="user-info-content">
+                <div class="user-avatar" id="user-avatar">U</div>
+                <span id="username-display"></span>
+            </div>
+            <button id="connection-btn" class="disconnect-btn" onclick="disconnectPartner()">
+                <i class="fas fa-phone-slash"></i> قطع الاتصال
+            </button>
         </div>
         <div id="registration-area">
-            <div class="gender-selection">
+            <div class="gender-selection animate__animated animate__fadeIn">
                 <h3>اختر جنسك:</h3>
-                <button class="gender-btn male" onclick="selectGender('ذكر')">ذكر</button>
-                <button class="gender-btn female" onclick="selectGender('أنثى')">أنثى</button>
+                <button class="gender-btn male animate__animated animate__pulse animate__infinite" onclick="selectGender('ذكر')">
+                    <i class="fas fa-mars"></i> ذكر
+                </button>
+                <button class="gender-btn female animate__animated animate__pulse animate__infinite" onclick="selectGender('أنثى')">
+                    <i class="fas fa-venus"></i> أنثى
+                </button>
             </div>
         </div>
         <div id="chat-area" style="display: none;">
             <div class="chat-messages" id="chat-messages"></div>
             <div class="chat-input">
                 <input type="text" id="message-input" placeholder="اكتب رسالتك هنا..." autocomplete="off">
-                <button id="send-button">إرسال</button>
+                <button id="send-button"><i class="fas fa-paper-plane"></i> إرسال</button>
             </div>
         </div>
+    </div>
+    
+    <div class="floating-button" id="scroll-to-bottom">
+        <i class="fas fa-arrow-down"></i>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -171,11 +651,64 @@
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 3;
         let isConnected = false;
+        let typingTimeout;
+        let isTyping = false;
+        
+        // DOM elements
+        const themeToggle = document.getElementById('theme-toggle');
+        const scrollToBottomBtn = document.getElementById('scroll-to-bottom');
+        const chatMessages = document.getElementById('chat-messages');
+        
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('chatTheme') || 'light';
+            document.body.classList.toggle('dark-mode', savedTheme === 'dark');
+            updateThemeIcon(savedTheme);
+        }
+        
+        function updateThemeIcon(theme) {
+            const icon = themeToggle.querySelector('i');
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('chatTheme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark ? 'dark' : 'light');
+        });
+        
+        // Scroll to bottom button
+        scrollToBottomBtn.addEventListener('click', () => {
+            chatMessages.scrollTo({
+                top: chatMessages.scrollHeight,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Show/hide scroll button based on scroll position
+        chatMessages.addEventListener('scroll', () => {
+            const scrollThreshold = 100;
+            const shouldShow = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight > scrollThreshold;
+            scrollToBottomBtn.style.display = shouldShow ? 'flex' : 'none';
+        });
+        
+        // Initialize
+        initTheme();
         
         // محاولة إعادة الاتصال إذا كانت هناك بصمة مخزنة
         if (fingerprint) {
-            document.getElementById('registration-area').innerHTML = 
-                '<div class="waiting-message">جاري إعادة الاتصال...</div>';
+            document.getElementById('registration-area').innerHTML = `
+                <div class="waiting-message animate__animated animate__fadeIn">
+                    <div class="waiting-animation">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    جاري إعادة الاتصال...
+                </div>
+            `;
             
             const gender = localStorage.getItem('chatGender') || '';
             
@@ -195,22 +728,56 @@
                 socket.emit('register', { gender });
             }
             
-            document.getElementById('registration-area').innerHTML = 
-                '<div class="waiting-message">جاري البحث عن شريك محادثة...</div>';
+            document.getElementById('registration-area').innerHTML = `
+                <div class="waiting-message animate__animated animate__fadeIn">
+                    <div class="waiting-animation">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    جاري البحث عن شريك محادثة...
+                </div>
+            `;
+            
+            // Animate the selected button
+            const buttons = document.querySelectorAll('.gender-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('animate__pulse', 'animate__infinite');
+            });
+            
+            const selectedBtn = gender === 'ذكر' ? 
+                document.querySelector('.male') : document.querySelector('.female');
+            selectedBtn.classList.add('animate__bounce');
+            
+            setTimeout(() => {
+                selectedBtn.classList.remove('animate__bounce');
+            }, 1000);
         }
-        
+
         function showRegistration() {
             document.getElementById('registration-area').innerHTML = `
-                <div class="gender-selection">
+                <div class="gender-selection animate__animated animate__fadeIn">
                     <h3>اختر جنسك:</h3>
-                    <button class="gender-btn male" onclick="selectGender('ذكر')">ذكر</button>
-                    <button class="gender-btn female" onclick="selectGender('أنثى')">أنثى</button>
+                    <button class="gender-btn male animate__animated animate__pulse animate__infinite" onclick="selectGender('ذكر')">
+                        <i class="fas fa-mars"></i> ذكر
+                    </button>
+                    <button class="gender-btn female animate__animated animate__pulse animate__infinite" onclick="selectGender('أنثى')">
+                        <i class="fas fa-venus"></i> أنثى
+                    </button>
                 </div>
             `;
         }
 
         function disconnectPartner() {
             if (isConnected) {
+                // Add animation to disconnect button
+                const btn = document.getElementById('connection-btn');
+                btn.classList.add('animate__rubberBand');
+                
+                setTimeout(() => {
+                    btn.classList.remove('animate__rubberBand');
+                }, 1000);
+                
                 socket.emit('disconnect-partner');
             }
         }
@@ -218,20 +785,32 @@
         function connectNewPartner() {
             const gender = localStorage.getItem('chatGender') || '';
             socket.emit('register', { gender, fingerprint });
-            document.getElementById('connection-btn').textContent = 'قطع الاتصال';
+            document.getElementById('connection-btn').innerHTML = '<i class="fas fa-phone-slash"></i> قطع الاتصال';
             document.getElementById('connection-btn').className = 'disconnect-btn';
             document.getElementById('connection-btn').onclick = disconnectPartner;
-            document.getElementById('registration-area').innerHTML = 
-                '<div class="waiting-message">جاري البحث عن شريك محادثة...</div>';
+            document.getElementById('registration-area').innerHTML = `
+                <div class="waiting-message animate__animated animate__fadeIn">
+                    <div class="waiting-animation">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    جاري البحث عن شريك محادثة...
+                </div>
+            `;
         }
 
         socket.on('registration-complete', (data) => {
             localStorage.setItem('chatFingerprint', data.fingerprint);
             fingerprint = data.fingerprint;
             
-            // عرض اسم المستخدم
-            document.getElementById('username-display').textContent = `أنت: ${data.username}`;
-            document.getElementById('user-info').style.display = 'block';
+            // عرض اسم المستخدم والصورة الرمزية
+            document.getElementById('username-display').textContent = data.username;
+            document.getElementById('user-avatar').textContent = data.username.charAt(0).toUpperCase();
+            document.getElementById('user-info').style.display = 'flex';
+            
+            // Animate user info appearance
+            document.getElementById('user-info').classList.add('animate__fadeInDown');
             
             if (!localStorage.getItem('chatGender')) {
                 localStorage.setItem('chatGender', data.gender);
@@ -240,7 +819,9 @@
 
         socket.on('banned', (data) => {
             document.getElementById('registration-area').innerHTML = 
-                `<div class="banned-message">${data.message}</div>`;
+                `<div class="banned-message animate__animated animate__shakeX">
+                    <i class="fas fa-ban"></i> ${data.message}
+                </div>`;
             
             localStorage.removeItem('chatFingerprint');
             localStorage.removeItem('chatGender');
@@ -250,9 +831,17 @@
             isConnected = false;
             document.getElementById('chat-area').style.display = 'none';
             document.getElementById('registration-area').style.display = 'block';
-            document.getElementById('registration-area').innerHTML = 
-                '<div class="waiting-message">في انتظار شريك محادثة...</div>';
-            document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
+            document.getElementById('registration-area').innerHTML = `
+                <div class="waiting-message animate__animated animate__fadeIn">
+                    <div class="waiting-animation">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    في انتظار شريك محادثة...
+                </div>
+            `;
+            document.getElementById('connection-btn').innerHTML = '<i class="fas fa-redo"></i> الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
             document.getElementById('connection-btn').onclick = connectNewPartner;
         });
@@ -262,14 +851,20 @@
             document.getElementById('chat-area').style.display = 'none';
             document.getElementById('registration-area').style.display = 'block';
             document.getElementById('registration-area').innerHTML = `
-                <div class="timeout-message">انتهت مهلة الانتظار ولم يتم العثور على شريك</div>
-                <div class="gender-selection">
+                <div class="timeout-message animate__animated animate__fadeIn">
+                    <i class="fas fa-clock"></i> انتهت مهلة الانتظار ولم يتم العثور على شريك
+                </div>
+                <div class="gender-selection animate__animated animate__fadeIn">
                     <h3>هل ترغب في المحاولة مرة أخرى؟</h3>
-                    <button class="gender-btn male" onclick="selectGender('ذكر')">ذكر</button>
-                    <button class="gender-btn female" onclick="selectGender('أنثى')">أنثى</button>
+                    <button class="gender-btn male animate__animated animate__pulse animate__infinite" onclick="selectGender('ذكر')">
+                        <i class="fas fa-mars"></i> ذكر
+                    </button>
+                    <button class="gender-btn female animate__animated animate__pulse animate__infinite" onclick="selectGender('أنثى')">
+                        <i class="fas fa-venus"></i> أنثى
+                    </button>
                 </div>
             `;
-            document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
+            document.getElementById('connection-btn').innerHTML = '<i class="fas fa-redo"></i> الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
             document.getElementById('connection-btn').onclick = connectNewPartner;
         });
@@ -279,47 +874,72 @@
             currentChatId = data.chatId;
             document.getElementById('registration-area').style.display = 'none';
             document.getElementById('chat-area').style.display = 'block';
-            document.getElementById('connection-btn').textContent = 'قطع الاتصال';
+            document.getElementById('connection-btn').innerHTML = '<i class="fas fa-phone-slash"></i> قطع الاتصال';
             document.getElementById('connection-btn').className = 'disconnect-btn';
             document.getElementById('connection-btn').onclick = disconnectPartner;
-            addNotification(`تم ربطك مع ${data.partnerUsername}`);
+            
+            // Animate chat area appearance
+            document.getElementById('chat-area').classList.add('animate__fadeIn');
+            
+            addNotification(`<i class="fas fa-link"></i> تم ربطك مع ${data.partnerUsername}`);
         });
 
         socket.on('partner-disconnected', () => {
             isConnected = false;
-            addNotification('غادر شريك المحادثة');
-            document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
+            addNotification('<i class="fas fa-unlink"></i> غادر شريك المحادثة');
+            document.getElementById('connection-btn').innerHTML = '<i class="fas fa-redo"></i> الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
             document.getElementById('connection-btn').onclick = connectNewPartner;
             setTimeout(() => {
                 document.getElementById('chat-area').style.display = 'none';
                 document.getElementById('registration-area').style.display = 'block';
-                document.getElementById('registration-area').innerHTML = 
-                    '<div class="waiting-message">اضغط على "الاتصال بشخص آخر" للبحث عن شريك جديد</div>';
+                document.getElementById('registration-area').innerHTML = `
+                    <div class="waiting-message animate__animated animate__fadeIn">
+                        اضغط على "الاتصال بشخص آخر" للبحث عن شريك جديد
+                    </div>
+                `;
             }, 3000);
         });
 
         socket.on('disconnected-successfully', () => {
             isConnected = false;
-            addNotification('لقد قمت بقطع الاتصال');
-            document.getElementById('connection-btn').textContent = 'الاتصال بشخص آخر';
+            addNotification('<i class="fas fa-sign-out-alt"></i> لقد قمت بقطع الاتصال');
+            document.getElementById('connection-btn').innerHTML = '<i class="fas fa-redo"></i> الاتصال بشخص آخر';
             document.getElementById('connection-btn').className = 'connect-btn';
             document.getElementById('connection-btn').onclick = connectNewPartner;
             document.getElementById('chat-area').style.display = 'none';
             document.getElementById('registration-area').style.display = 'block';
-            document.getElementById('registration-area').innerHTML = 
-                '<div class="waiting-message">اضغط على "الاتصال بشخص آخر" للبحث عن شريك جديد</div>';
+            document.getElementById('registration-area').innerHTML = `
+                <div class="waiting-message animate__animated animate__fadeIn">
+                    اضغط على "الاتصال بشخص آخر" للبحث عن شريك جديد
+                </div>
+            `;
         });
 
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
-        const chatMessages = document.getElementById('chat-messages');
 
         sendButton.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
             }
+        });
+        
+        // Typing indicator functionality
+        messageInput.addEventListener('input', () => {
+            if (!isTyping && messageInput.value.trim() !== '') {
+                isTyping = true;
+                socket.emit('typing', { chatId: currentChatId, isTyping: true });
+            }
+            
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                if (isTyping) {
+                    isTyping = false;
+                    socket.emit('typing', { chatId: currentChatId, isTyping: false });
+                }
+            }, 2000);
         });
 
         function sendMessage() {
@@ -329,6 +949,14 @@
                     message: message,
                     chatId: currentChatId
                 });
+                
+                // Clear typing indicator when message is sent
+                if (isTyping) {
+                    isTyping = false;
+                    socket.emit('typing', { chatId: currentChatId, isTyping: false });
+                    clearTimeout(typingTimeout);
+                }
+                
                 messageInput.value = '';
             }
         }
@@ -336,21 +964,75 @@
         socket.on('new-message', (data) => {
             addMessage(data.username, data.message, data.isMe ? 'sent' : 'received');
         });
+        
+        socket.on('typing', (data) => {
+            const typingIndicator = document.getElementById('typing-indicator');
+            
+            if (data.isTyping) {
+                if (!typingIndicator) {
+                    const indicator = document.createElement('div');
+                    indicator.id = 'typing-indicator';
+                    indicator.className = 'typing-indicator animate__animated animate__fadeIn';
+                    indicator.innerHTML = `
+                        <span>${data.username} يكتب...</span>
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    `;
+                    chatMessages.appendChild(indicator);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            } else {
+                if (typingIndicator) {
+                    typingIndicator.classList.remove('animate__fadeIn');
+                    typingIndicator.classList.add('animate__fadeOut');
+                    setTimeout(() => {
+                        typingIndicator.remove();
+                    }, 300);
+                }
+            }
+        });
 
         function addMessage(username, message, type) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
             const messageElement = document.createElement('div');
-            messageElement.classList.add('message', type);
-            messageElement.innerHTML = `<strong>${username}:</strong> ${message}`;
+            messageElement.classList.add('message', type, 'animate__animated');
+            messageElement.style.animationDelay = type === 'sent' ? '0.1s' : '0.2s';
+            messageElement.classList.add(type === 'sent' ? 'animate__fadeInRight' : 'animate__fadeInLeft');
+            
+            messageElement.innerHTML = `
+                <strong>${username}:</strong> ${message}
+                <span class="message-time">${timeString}</span>
+            `;
+            
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Remove animation class after animation completes to prevent re-animation
+            setTimeout(() => {
+                messageElement.classList.remove('animate__animated', 'animate__fadeInRight', 'animate__fadeInLeft');
+            }, 1000);
         }
 
         function addNotification(text) {
             const notificationElement = document.createElement('div');
-            notificationElement.classList.add('notification');
-            notificationElement.textContent = text;
+            notificationElement.classList.add('notification', 'animate__animated', 'animate__fadeIn');
+            notificationElement.innerHTML = text;
             chatMessages.appendChild(notificationElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Remove notification after some time
+            setTimeout(() => {
+                notificationElement.classList.remove('animate__fadeIn');
+                notificationElement.classList.add('animate__fadeOut');
+                setTimeout(() => {
+                    notificationElement.remove();
+                }, 300);
+            }, 5000);
         }
 
         // إدارة إعادة الاتصال في حالة فقدان الاتصال
@@ -369,6 +1051,24 @@
                 const gender = localStorage.getItem('chatGender') || '';
                 socket.emit('register', { gender, fingerprint });
             }
+        });
+        
+        // Smooth scroll to bottom when new messages arrive
+        function scrollToBottom() {
+            chatMessages.scrollTo({
+                top: chatMessages.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+        
+        // Observe new messages and scroll to bottom
+        const observer = new MutationObserver(() => {
+            scrollToBottom();
+        });
+        
+        observer.observe(chatMessages, {
+            childList: true,
+            subtree: true
         });
     </script>
 </body>
