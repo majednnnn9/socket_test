@@ -9,7 +9,7 @@ require('dotenv').config()
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
-//  process.env.
+
 // إعداد اتصال قاعدة البيانات
 const pool = mysql.createPool({
     host: process.env.HOST,
@@ -88,12 +88,34 @@ function generateRandomName() {
 const waitingUsers = new Map();
 const activeChats = new Map();
 
+// دالة للتحقق مما إذا كان المستخدم متصلًا بالفعل مع شخص آخر
+async function isAlreadyInChat(fingerprint) {
+    try {
+        const [results] = await pool.query(
+            'SELECT current_partner_id FROM users WHERE fingerprint = ? AND current_partner_id IS NOT NULL',
+            [fingerprint]
+        );
+        return results.length > 0;
+    } catch (error) {
+        console.error('خطأ في التحقق من حالة المحادثة:', error);
+        return false;
+    }
+}
+
 io.on('connection', (socket) => {
     console.log('مستخدم جديد متصل:', socket.id);
 
     socket.on('register', async (data) => {
         try {
             const { gender, fingerprint } = data;
+
+            // التحقق مما إذا كان المستخدم متصلًا بالفعل في محادثة
+            const alreadyInChat = await isAlreadyInChat(fingerprint || '');
+            if (alreadyInChat) {
+                socket.emit('error', { message: 'أنت متصل بالفعل في محادثة أخرى' });
+                socket.disconnect();
+                return;
+            }
 
             // التحقق من وجود المستخدم في قاعدة البيانات
             const [existingUser] = await pool.query(
@@ -108,6 +130,13 @@ io.on('connection', (socket) => {
                 // التحقق من حظر المستخدم
                 if (user.is_banned) {
                     socket.emit('banned', { message: 'تم حظرك من استخدام الخدمة' });
+                    socket.disconnect();
+                    return;
+                }
+
+                // التحقق مما إذا كان المستخدم متصلاً بالفعل مع شخص آخر
+                if (user.current_partner_id) {
+                    socket.emit('error', { message: 'أنت متصل بالفعل في محادثة أخرى' });
                     socket.disconnect();
                     return;
                 }
@@ -165,7 +194,10 @@ io.on('connection', (socket) => {
             // البحث عن أي مستخدم في قائمة الانتظار (بغض النظر عن الجنس)
             // مع استثناء المستخدم الحالي نفسه
             for (const [waitingSocketId, waitingSocket] of waitingUsers) {
-                if (waitingSocketId !== socket.id && waitingSocket.fingerprint !== socket.fingerprint) {
+                if (waitingSocketId !== socket.id && 
+                    waitingSocket.fingerprint !== socket.fingerprint &&
+                    !activeChats.has(waitingSocketId)) {
+                    
                     // إزالة المستخدم من قائمة الانتظار
                     waitingUsers.delete(waitingSocketId);
 
@@ -203,17 +235,19 @@ io.on('connection', (socket) => {
             }
 
             // لا يوجد شريك متاح، أضف المستخدم لقائمة الانتظار
-            waitingUsers.set(socket.id, socket);
-            socket.emit('waiting-for-partner');
+            if (!waitingUsers.has(socket.id) && !activeChats.has(socket.id)) {
+                waitingUsers.set(socket.id, socket);
+                socket.emit('waiting-for-partner');
 
-            // ضبط مهلة انتظار (5 دقائق)
-            setTimeout(() => {
-                if (waitingUsers.has(socket.id) && !activeChats.has(socket.id)) {
-                    waitingUsers.delete(socket.id);
-                    socket.emit('waiting-timeout');
-                    console.log(`انتهت مهلة انتظار المستخدم ${socket.id}`);
-                }
-            }, 5 * 60 * 1000);
+                // ضبط مهلة انتظار (5 دقائق)
+                setTimeout(() => {
+                    if (waitingUsers.has(socket.id) && !activeChats.has(socket.id)) {
+                        waitingUsers.delete(socket.id);
+                        socket.emit('waiting-timeout');
+                        console.log(`انتهت مهلة انتظار المستخدم ${socket.id}`);
+                    }
+                }, 5 * 60 * 1000);
+            }
         } catch (err) {
             console.error('خطأ في البحث عن شريك:', err);
             socket.emit('partner-search-error', { message: 'حدث خطأ أثناء البحث عن شريك' });
@@ -275,6 +309,7 @@ io.on('connection', (socket) => {
 
                     // حذف المحادثة من قاعدة البيانات
                     await pool.query('DELETE FROM messages WHERE chat_id = ?', [chatId]);
+                    await pool.query('DELETE FROM active_chats WHERE id = ?', [chatId]);
 
                     // تحديث حالة المستخدمين
                     await pool.query(
@@ -315,6 +350,7 @@ io.on('connection', (socket) => {
 
                         // حذف المحادثة من قاعدة البيانات
                         await pool.query('DELETE FROM messages WHERE chat_id = ?', [chatId]);
+                        await pool.query('DELETE FROM active_chats WHERE id = ?', [chatId]);
 
                         // تحديث حالة المستخدمين
                         await pool.query(
@@ -332,7 +368,7 @@ io.on('connection', (socket) => {
 
                 // تحديث حالة المستخدم في قاعدة البيانات
                 await pool.query(
-                    'UPDATE users SET is_online = FALSE, socket_id = NULL WHERE fingerprint = ?',
+                    'UPDATE users SET is_online = FALSE, socket_id = NULL, current_partner_id = NULL WHERE fingerprint = ?',
                     [socket.fingerprint]
                 );
 
